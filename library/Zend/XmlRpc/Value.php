@@ -486,30 +486,31 @@ abstract class Zend_XmlRpc_Value
      */
     protected static function _extractTypeAndValue(SimpleXMLElement $xml, &$type, &$value)
     {
-        list($type, $value) = each($xml);
-
-        if (!$type and $value === null) {
-            $namespaces = array('ex' => 'http://ws.apache.org/xmlrpc/namespaces/extensions');
-            foreach ($namespaces as $namespaceName => $namespaceUri) {
-                $namespaceXml = $xml->children($namespaceUri);
-                list($type, $value) = each($namespaceXml);
-                if ($type !== null) {
-                    $type = $namespaceName . ':' . $type;
-                    break;
+        foreach ($xml as $type => $value) {
+            if (!$type and $value === null) {
+                $namespaces = array('ex' => 'http://ws.apache.org/xmlrpc/namespaces/extensions');
+                foreach ($namespaces as $namespaceName => $namespaceUri) {
+                    $namespaceXml = $xml->children($namespaceUri);
+                    foreach ($namespaceXml as $type => $value) {
+                        if ($type !== null) {
+                            $type = $namespaceName . ':' . $type;
+                            break;
+                        }
+                    }
                 }
             }
-        }
 
-        //if there is a child element, try to parse type for it
-        if (!$type && $value instanceof SimpleXMLElement) {
-            self::_extractTypeAndValue($value->children(), $type, $value);
-        }
+            //if there is a child element, try to parse type for it
+            if (!$type && $value instanceof SimpleXMLElement) {
+                self::_extractTypeAndValue($value->children(), $type, $value);
+            }
 
-        // If no type was specified, the default is string
-        if (!$type) {
-            $type = self::XMLRPC_TYPE_STRING;
-            if (preg_match('#^<value>.*</value>$#', $xml->asXML())) {
-                $value = str_replace(array('<value>', '</value>'), '', $xml->asXML());
+            // If no type was specified, the default is string
+            if (!$type) {
+                $type = self::XMLRPC_TYPE_STRING;
+                if (preg_match('#^<value>.*</value>$#', $xml->asXML())) {
+                    $value = str_replace(array('<value>', '</value>'), '', $xml->asXML());
+                }
             }
         }
     }
